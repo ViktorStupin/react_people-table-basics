@@ -1,9 +1,232 @@
-import { Loader } from './components/Loader';
-
+import { useEffect, useState } from 'react';
+import classNames from 'classnames';
 import './App.scss';
 
-export const App = () => (
-  <div data-cy="app">
+interface Person {
+  name: string;
+  sex: 'm' | 'f';
+  born: number;
+  died: number;
+  motherName?: string;
+  fatherName?: string;
+}
+
+const ACTIVE_NAV_LINK_CLASS = 'has-background-grey-lighter';
+const SELECTED_PERSON_CLASS = 'has-background-warning';
+
+// Компонент для завантаження
+const Loader = () => (
+  <div data-cy="loader" className="loader-container">
+    <div className="loader is-active"></div>
+  </div>
+);
+
+// Головна сторінка
+const HomePage = () => (
+  <h1 className="title">Home Page</h1>
+);
+
+// Сторінка з людьми
+const PeoplePage = () => {
+  const [people, setPeople] = useState<Person[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [selectedSlug, setSelectedSlug] = useState<string | null>(null);
+
+  // Оновлюємо вибраний slug при зміні hash
+  useEffect(() => {
+    const handleHashChange = () => {
+      const currentHash = window.location.hash;
+      const slug = currentHash.includes('/people/')
+        ? currentHash.split('/people/')[1]
+        : null;
+      setSelectedSlug(slug);
+    };
+
+    // Слухаємо зміни hash
+    window.addEventListener('hashchange', handleHashChange);
+
+    // Встановлюємо початкове значення
+    handleHashChange();
+
+    return () => {
+      window.removeEventListener('hashchange', handleHashChange);
+    };
+  }, []);
+
+  useEffect(() => {
+    setLoading(true);
+    setError(null);
+
+    fetch('./api/people.json')
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Failed to load people');
+        }
+        return response.json();
+      })
+      .then(data => {
+        setPeople(data);
+      })
+      .catch(() => setError('Something went wrong'))
+      .finally(() => setLoading(false));
+  }, []);
+
+  // Генеруємо slug для людини
+  const generateSlug = (person: Person) => {
+    return `${person.name.toLowerCase().replace(/[.,]/g, '').replace(/\s+/g, '-')}-${person.born}`;
+  };
+
+  // Знаходимо людину за іменем
+  const findPersonByName = (name: string) => {
+    return people.find(person => person.name === name);
+  };
+
+  // Обробник кліку на людину
+  const handlePersonClick = (person: Person, e: React.MouseEvent) => {
+    e.preventDefault();
+    window.location.hash = `#/people/${generateSlug(person)}`;
+  };
+
+  // Обробник кліку на батьків
+  const handleParentClick = (parentName: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    const parent = findPersonByName(parentName);
+    if (parent) {
+      window.location.hash = `#/people/${generateSlug(parent)}`;
+    }
+  };
+
+  if (loading) {
+    return (
+      <>
+        <h1 className="title">People Page</h1>
+        <Loader />
+      </>
+    );
+  }
+
+  if (error) {
+    return (
+      <>
+        <h1 className="title">People Page</h1>
+        <p data-cy="peopleLoadingError" className="has-text-danger">
+          Something went wrong
+        </p>
+      </>
+    );
+  }
+
+  if (!people.length) {
+    return (
+      <>
+        <h1 className="title">People Page</h1>
+        <p data-cy="noPeopleMessage">There are no people on the server</p>
+      </>
+    );
+  }
+
+  return (
+    <>
+      <h1 className="title">People Page</h1>
+
+      <table data-cy="peopleTable" className="table is-striped is-hoverable is-fullwidth">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Sex</th>
+            <th>Born</th>
+            <th>Died</th>
+            <th>Mother</th>
+            <th>Father</th>
+          </tr>
+        </thead>
+        <tbody>
+          {people.map((person, index) => (
+            <tr
+              key={index}
+              data-cy="person"
+              className={classNames({
+                [SELECTED_PERSON_CLASS]: generateSlug(person) === selectedSlug
+              })}
+            >
+              <td>
+                <a
+                  href={`#/people/${generateSlug(person)}`}
+                  className={classNames({
+                    'has-text-danger': person.sex === 'f'
+                  })}
+                  onClick={(e) => handlePersonClick(person, e)}
+                >
+                  {person.name}
+                </a>
+              </td>
+              <td>{person.sex}</td>
+              <td>{person.born}</td>
+              <td>{person.died}</td>
+              <td>
+                {person.motherName ? (
+                  findPersonByName(person.motherName) ? (
+                    <a
+                      href={`#/people/${generateSlug(findPersonByName(person.motherName)!)}`}
+                      className="has-text-danger"
+                      onClick={(e) => handleParentClick(person.motherName!, e)}
+                    >
+                      {person.motherName}
+                    </a>
+                  ) : (
+                    person.motherName
+                  )
+                ) : '-'}
+              </td>
+              <td>
+                {person.fatherName ? (
+                  findPersonByName(person.fatherName) ? (
+                    <a
+                      href={`#/people/${generateSlug(findPersonByName(person.fatherName)!)}`}
+                      onClick={(e) => handleParentClick(person.fatherName!, e)}
+                    >
+                      {person.fatherName}
+                    </a>
+                  ) : (
+                    person.fatherName
+                  )
+                ) : '-'}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </>
+  );
+};
+
+// Сторінка не знайдена
+const NotFoundPage = () => (
+  <h1 className="title">Page not found</h1>
+);
+
+// Навігація
+const Navigation = () => {
+  const [currentHash, setCurrentHash] = useState(window.location.hash);
+
+  useEffect(() => {
+    const handleHashChange = () => {
+      setCurrentHash(window.location.hash);
+    };
+
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
+
+  const getActiveClass = (path: string) => {
+    if (path === '#/' && (currentHash === '#/' || currentHash === '' || currentHash === '#/home')) {
+      return ACTIVE_NAV_LINK_CLASS;
+    }
+    return currentHash.startsWith(path) && path !== '#/' ? ACTIVE_NAV_LINK_CLASS : '';
+  };
+
+  return (
     <nav
       data-cy="nav"
       className="navbar is-fixed-top has-shadow"
@@ -12,12 +235,14 @@ export const App = () => (
     >
       <div className="container">
         <div className="navbar-brand">
-          <a className="navbar-item" href="#/">
+          <a
+            className={`navbar-item ${getActiveClass('#/')}`}
+            href="#/"
+          >
             Home
           </a>
-
           <a
-            className="navbar-item has-background-grey-lighter"
+            className={`navbar-item ${getActiveClass('#/people')}`}
             href="#/people"
           >
             People
@@ -25,143 +250,59 @@ export const App = () => (
         </div>
       </div>
     </nav>
+  );
+};
 
-    <main className="section">
-      <div className="container">
-        <h1 className="title">Home Page</h1>
-        <h1 className="title">People Page</h1>
-        <h1 className="title">Page not found</h1>
+// Головний компонент
+export const App = () => {
+  const [currentPage, setCurrentPage] = useState<'home' | 'people' | 'notFound'>('home');
 
-        <div className="block">
-          <div className="box table-container">
-            <Loader />
+  useEffect(() => {
+    const handleHashChange = () => {
+      const hash = window.location.hash;
 
-            <p data-cy="peopleLoadingError" className="has-text-danger">
-              Something went wrong
-            </p>
+      if (hash === '' || hash === '#/' || hash === '#/home') {
+        setCurrentPage('home');
+      } else if (hash.startsWith('#/people')) {
+        setCurrentPage('people');
+      } else {
+        setCurrentPage('notFound');
+      }
+    };
 
-            <p data-cy="noPeopleMessage">There are no people on the server</p>
+    // Обробка перенаправлення з /home на /
+    if (window.location.hash === '#/home') {
+      window.location.hash = '#/';
+    }
 
-            <table
-              data-cy="peopleTable"
-              className="table is-striped is-hoverable is-narrow is-fullwidth"
-            >
-              <thead>
-                <tr>
-                  <th>Name</th>
-                  <th>Sex</th>
-                  <th>Born</th>
-                  <th>Died</th>
-                  <th>Mother</th>
-                  <th>Father</th>
-                </tr>
-              </thead>
+    window.addEventListener('hashchange', handleHashChange);
+    handleHashChange(); // Встановлюємо початкову сторінку
 
-              <tbody>
-                <tr data-cy="person">
-                  <td>
-                    <a href="#/people/jan-van-brussel-1714">Jan van Brussel</a>
-                  </td>
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
 
-                  <td>m</td>
-                  <td>1714</td>
-                  <td>1748</td>
-                  <td>Joanna van Rooten</td>
-                  <td>Jacobus van Brussel</td>
-                </tr>
+  const renderPage = () => {
+    switch (currentPage) {
+      case 'home':
+        return <HomePage />;
+      case 'people':
+        return <PeoplePage />;
+      case 'notFound':
+        return <NotFoundPage />;
+      default:
+        return <HomePage />;
+    }
+  };
 
-                <tr data-cy="person">
-                  <td>
-                    <a href="#/people/philibert-haverbeke-1907">
-                      Philibert Haverbeke
-                    </a>
-                  </td>
+  return (
+    <div data-cy="app">
+      <Navigation />
 
-                  <td>m</td>
-                  <td>1907</td>
-                  <td>1997</td>
-
-                  <td>
-                    <a
-                      className="has-text-danger"
-                      href="#/people/emma-de-milliano-1876"
-                    >
-                      Emma de Milliano
-                    </a>
-                  </td>
-
-                  <td>
-                    <a href="#/people/emile-haverbeke-1877">Emile Haverbeke</a>
-                  </td>
-                </tr>
-
-                <tr data-cy="person" className="has-background-warning">
-                  <td>
-                    <a href="#/people/jan-frans-van-brussel-1761">
-                      Jan Frans van Brussel
-                    </a>
-                  </td>
-
-                  <td>m</td>
-                  <td>1761</td>
-                  <td>1833</td>
-                  <td>-</td>
-
-                  <td>
-                    <a href="#/people/jacobus-bernardus-van-brussel-1736">
-                      Jacobus Bernardus van Brussel
-                    </a>
-                  </td>
-                </tr>
-
-                <tr data-cy="person">
-                  <td>
-                    <a
-                      className="has-text-danger"
-                      href="#/people/lievijne-jans-1542"
-                    >
-                      Lievijne Jans
-                    </a>
-                  </td>
-
-                  <td>f</td>
-                  <td>1542</td>
-                  <td>1582</td>
-                  <td>-</td>
-                  <td>-</td>
-                </tr>
-
-                <tr data-cy="person">
-                  <td>
-                    <a href="#/people/bernardus-de-causmaecker-1721">
-                      Bernardus de Causmaecker
-                    </a>
-                  </td>
-
-                  <td>m</td>
-                  <td>1721</td>
-                  <td>1789</td>
-
-                  <td>
-                    <a
-                      className="has-text-danger"
-                      href="#/people/livina-haverbeke-1692"
-                    >
-                      Livina Haverbeke
-                    </a>
-                  </td>
-
-                  <td>
-                    <a href="#/people/lieven-de-causmaecker-1696">
-                      Lieven de Causmaecker
-                    </a>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+      <main className="section">
+        <div className="container">
+          {renderPage()}
         </div>
-      </div>
-    </main>
-  </div>
-);
+      </main>
+    </div>
+  );
+};
