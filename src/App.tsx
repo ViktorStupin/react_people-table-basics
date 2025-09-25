@@ -22,9 +22,7 @@ const Loader = () => (
 );
 
 // Головна сторінка
-const HomePage = () => (
-  <h1 className="title">Home Page</h1>
-);
+const HomePage = () => <h1 className="title">Home Page</h1>;
 
 // Сторінка з людьми
 const PeoplePage = () => {
@@ -40,6 +38,7 @@ const PeoplePage = () => {
       const slug = currentHash.includes('/people/')
         ? currentHash.split('/people/')[1]
         : null;
+
       setSelectedSlug(slug);
     };
 
@@ -63,6 +62,7 @@ const PeoplePage = () => {
         if (!response.ok) {
           throw new Error('Failed to load people');
         }
+
         return response.json();
       })
       .then(data => {
@@ -92,6 +92,7 @@ const PeoplePage = () => {
   const handleParentClick = (parentName: string, e: React.MouseEvent) => {
     e.preventDefault();
     const parent = findPersonByName(parentName);
+
     if (parent) {
       window.location.hash = `#/people/${generateSlug(parent)}`;
     }
@@ -130,7 +131,10 @@ const PeoplePage = () => {
     <>
       <h1 className="title">People Page</h1>
 
-      <table data-cy="peopleTable" className="table is-striped is-hoverable is-fullwidth">
+      <table
+        data-cy="peopleTable"
+        className="table is-striped is-hoverable is-fullwidth"
+      >
         <thead>
           <tr>
             <th>Name</th>
@@ -147,16 +151,16 @@ const PeoplePage = () => {
               key={index}
               data-cy="person"
               className={classNames({
-                [SELECTED_PERSON_CLASS]: generateSlug(person) === selectedSlug
+                [SELECTED_PERSON_CLASS]: generateSlug(person) === selectedSlug,
               })}
             >
               <td>
                 <a
                   href={`#/people/${generateSlug(person)}`}
                   className={classNames({
-                    'has-text-danger': person.sex === 'f'
+                    'has-text-danger': person.sex === 'f',
                   })}
-                  onClick={(e) => handlePersonClick(person, e)}
+                  onClick={e => handlePersonClick(person, e)}
                 >
                   {person.name}
                 </a>
@@ -170,28 +174,32 @@ const PeoplePage = () => {
                     <a
                       href={`#/people/${generateSlug(findPersonByName(person.motherName)!)}`}
                       className="has-text-danger"
-                      onClick={(e) => handleParentClick(person.motherName!, e)}
+                      onClick={e => handleParentClick(person.motherName!, e)}
                     >
                       {person.motherName}
                     </a>
                   ) : (
                     person.motherName
                   )
-                ) : '-'}
+                ) : (
+                  '-'
+                )}
               </td>
               <td>
                 {person.fatherName ? (
                   findPersonByName(person.fatherName) ? (
                     <a
                       href={`#/people/${generateSlug(findPersonByName(person.fatherName)!)}`}
-                      onClick={(e) => handleParentClick(person.fatherName!, e)}
+                      onClick={e => handleParentClick(person.fatherName!, e)}
                     >
                       {person.fatherName}
                     </a>
                   ) : (
                     person.fatherName
                   )
-                ) : '-'}
+                ) : (
+                  '-'
+                )}
               </td>
             </tr>
           ))}
@@ -202,9 +210,7 @@ const PeoplePage = () => {
 };
 
 // Сторінка не знайдена
-const NotFoundPage = () => (
-  <h1 className="title">Page not found</h1>
-);
+const NotFoundPage = () => <h1 className="title">Page not found</h1>;
 
 // Навігація
 const Navigation = () => {
@@ -216,14 +222,21 @@ const Navigation = () => {
     };
 
     window.addEventListener('hashchange', handleHashChange);
+
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
 
   const getActiveClass = (path: string) => {
-    if (path === '#/' && (currentHash === '#/' || currentHash === '' || currentHash === '#/home')) {
+    if (
+      path === '#/' &&
+      (currentHash === '#/' || currentHash === '' || currentHash === '#/home')
+    ) {
       return ACTIVE_NAV_LINK_CLASS;
     }
-    return currentHash.startsWith(path) && path !== '#/' ? ACTIVE_NAV_LINK_CLASS : '';
+
+    return currentHash.startsWith(path) && path !== '#/'
+      ? ACTIVE_NAV_LINK_CLASS
+      : '';
   };
 
   return (
@@ -235,10 +248,7 @@ const Navigation = () => {
     >
       <div className="container">
         <div className="navbar-brand">
-          <a
-            className={`navbar-item ${getActiveClass('#/')}`}
-            href="#/"
-          >
+          <a className={`navbar-item ${getActiveClass('#/')}`} href="#/">
             Home
           </a>
           <a
@@ -255,7 +265,9 @@ const Navigation = () => {
 
 // Головний компонент
 export const App = () => {
-  const [currentPage, setCurrentPage] = useState<'home' | 'people' | 'notFound'>('home');
+  const [currentPage, setCurrentPage] = useState<
+    'home' | 'people' | 'notFound'
+  >('home');
 
   useEffect(() => {
     const handleHashChange = () => {
@@ -299,9 +311,7 @@ export const App = () => {
       <Navigation />
 
       <main className="section">
-        <div className="container">
-          {renderPage()}
-        </div>
+        <div className="container">{renderPage()}</div>
       </main>
     </div>
   );
