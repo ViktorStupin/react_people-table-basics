@@ -1,14 +1,14 @@
-import { useState, useEffect } from 'react';
-import { Loader } from '../components/Loader/Loader';
-import PeopleTable from '../components/PeopleTable/PeopleTable';
-import type { Person } from '../types/Person';
+import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
+import type { Person } from '../types/Person';
+import { Loader } from '../components/Loader';
+import PeopleTable from '../components/PeopleTable/PeopleTable';
 import React from 'react';
 
 const PeoplePage = () => {
+  const { slug } = useParams();
   const [people, setPeople] = useState<Person[]>([]);
   const [loading, setLoading] = useState(true);
-  const { slug } = useParams<{ slug: string }>();
 
   useEffect(() => {
     setLoading(true);

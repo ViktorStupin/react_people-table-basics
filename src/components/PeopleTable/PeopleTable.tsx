@@ -1,6 +1,6 @@
 import { PersonLink } from '../PersonLink';
 import type { Person } from '../../types/Person';
-import './PeopleTable.scss';
+import { generateSlug } from '../../utils/generateSlug';
 import React from 'react';
 
 type Props = {
@@ -8,18 +8,15 @@ type Props = {
   selectedSlug?: string;
 };
 
-const generateSlug = (person: Person) =>
-  person.name.trim().toLowerCase().replace(/\s+/g, '-');
-
-const PeopleTable: React.FC<Props> = ({ people, selectedSlug }) => (
-  <table className="table is-striped is-fullwidth">
+const PeopleTable = ({ people, selectedSlug }: Props) => (
+  <table>
     <thead>
       <tr>
         <th>Name</th>
-        <th>Born</th>
-        <th>Died</th>
         <th>Mother</th>
         <th>Father</th>
+        <th>Born</th>
+        <th>Died</th>
       </tr>
     </thead>
     <tbody>
@@ -32,16 +29,16 @@ const PeopleTable: React.FC<Props> = ({ people, selectedSlug }) => (
             className={slug === selectedSlug ? 'has-background-warning' : ''}
           >
             <td>
-              <PersonLink person={person} />
+              <PersonLink name={person.name} people={people} />
             </td>
-            <td>{person.born}</td>
-            <td>{person.died}</td>
             <td>
               <PersonLink name={person.motherName} people={people} />
             </td>
             <td>
               <PersonLink name={person.fatherName} people={people} />
             </td>
+            <td>{person.born}</td>
+            <td>{person.died}</td>
           </tr>
         );
       })}
